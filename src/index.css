@@ -1,0 +1,85 @@
+:root {
+  --text: #5c5a66;
+  --text-strong: #14121a;
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --border: #e6e4df;
+  --muted-bg: #f0eeea;
+  --accent: #2d6a4f;
+  --accent-hover: #1b4332;
+  --accent-muted: rgba(45, 106, 79, 0.12);
+  --focus: #1d3557;
+
+  --sans: 'Segoe UI', system-ui, sans-serif;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, ui-serif, Georgia,
+    serif;
+  --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
+    monospace;
+
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--text);
+  background-color: var(--bg);
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #b7b3c2;
+    --text-strong: #f4f2f8;
+    --bg: #0f0e12;
+    --surface: #17161c;
+    --border: #2a2832;
+    --muted-bg: #1f1d26;
+    --accent: #6bcf9a;
+    --accent-hover: #8fdcb3;
+    --accent-muted: rgba(107, 207, 154, 0.14);
+    --focus: #a8dadc;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: var(--muted-bg);
+  color: var(--text-strong);
+}
+
+@media (max-width: 720px) {
+  :root {
+    font-size: 16px;
+  }
+}
