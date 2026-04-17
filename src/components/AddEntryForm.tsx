@@ -4,7 +4,7 @@ import type { PortfolioEntry } from '../data/portfolio'
 export type PortfolioKind = 'project' | 'volunteer'
 
 type Props = {
-  onAdd: (kind: PortfolioKind, entry: Omit<PortfolioEntry, 'id'>) => void
+  onAdd: (kind: PortfolioKind, entry: Omit<PortfolioEntry, 'id'>) => Promise<void>
 }
 
 export function AddEntryForm({ onAdd }: Props) {
@@ -18,6 +18,8 @@ export function AddEntryForm({ onAdd }: Props) {
   const [githubLink, setGithubLink] = useState('')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [dateError, setDateError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   function reset() {
     setName('')
@@ -28,11 +30,13 @@ export function AddEntryForm({ onAdd }: Props) {
     setGithubLink('')
     setMediaFile(null)
     setDateError(null)
+    setSubmitError(null)
   }
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setDateError(null)
+    setSubmitError(null)
 
     if (!name.trim()) return
 
@@ -48,17 +52,29 @@ export function AddEntryForm({ onAdd }: Props) {
 
     const mediaUrl = mediaFile ? URL.createObjectURL(mediaFile) : null
 
-    onAdd(kind, {
-      name: name.trim(),
-      startDate,
-      endDate: ongoing || !endDate ? null : endDate,
-      description: description.trim(),
-      githubLink: githubLink.trim(),
-      mediaUrl,
-      mediaAlt: mediaFile ? `${name.trim()} — uploaded image` : undefined,
-    })
-
-    reset()
+    setSubmitting(true)
+    try {
+      await onAdd(kind, {
+        name: name.trim(),
+        startDate,
+        endDate: ongoing || !endDate ? null : endDate,
+        description: description.trim(),
+        githubLink: githubLink.trim(),
+        mediaUrl,
+        mediaAlt: mediaFile ? `${name.trim()} — uploaded image` : undefined,
+      })
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl)
+      reset()
+    } catch (err) {
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl)
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : 'Could not save to Supabase. Check your connection and RLS insert policy.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -66,8 +82,9 @@ export function AddEntryForm({ onAdd }: Props) {
       <div className="section-heading">
         <h2 id="add-entry-heading">Add an entry</h2>
         <p className="section-subtitle">
-          Prototype only: submissions stay in this browser tab until you connect a
-          backend. Image uploads use a temporary preview URL.
+          Saves to the <code>portfolio_entries</code> table. File uploads are not
+          stored yet (blob URLs are not saved); use a public image URL in a future
+          version or Supabase Storage.
         </p>
       </div>
       <form className="add-entry-form" onSubmit={handleSubmit} noValidate>
@@ -180,10 +197,15 @@ export function AddEntryForm({ onAdd }: Props) {
         </label>
 
         {dateError ? <p className="add-entry-form__error">{dateError}</p> : null}
+        {submitError ? <p className="add-entry-form__error">{submitError}</p> : null}
 
         <div className="add-entry-form__actions">
-          <button type="submit" className="add-entry-form__submit">
-            Add to {kind === 'project' ? 'projects' : 'volunteer'}
+          <button
+            type="submit"
+            className="add-entry-form__submit"
+            disabled={submitting}
+          >
+            {submitting ? 'Saving…' : `Add to ${kind === 'project' ? 'projects' : 'volunteer'}`}
           </button>
         </div>
       </form>

@@ -1,35 +1,53 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { AddEntryForm } from './components/AddEntryForm'
 import { AboutSection } from './components/AboutSection'
 import { EntryListSection } from './components/EntryListSection'
 import { HeroSection } from './components/HeroSection'
 import { SiteFooter } from './components/SiteFooter'
 import { SiteHeader } from './components/SiteHeader'
+import type { PortfolioEntry } from './data/portfolio'
+import { useAuthSession } from './hooks/useAuthSession'
+import { usePortfolioFromSupabase } from './hooks/usePortfolioFromSupabase'
 import {
-  initialProjects,
-  initialVolunteer,
-  type PortfolioEntry,
-} from './data/portfolio'
+  deletePortfolioEntry,
+  insertPortfolioEntry,
+} from './lib/portfolioSupabase'
+import { getPortfolioOwnerId, isPortfolioOwner } from './lib/owner'
 import './App.css'
 
 function App() {
-  const [projects, setProjects] = useState<PortfolioEntry[]>(initialProjects)
-  const [volunteer, setVolunteer] = useState<PortfolioEntry[]>(initialVolunteer)
+  const { user } = useAuthSession()
+  const canAddEntries = isPortfolioOwner(user)
+  const ownerIdConfigured = Boolean(getPortfolioOwnerId())
+
+  const {
+    projects,
+    setProjects,
+    volunteer,
+    setVolunteer,
+    loading,
+    loadError,
+  } = usePortfolioFromSupabase()
 
   const handleAdd = useCallback(
-    (kind: 'project' | 'volunteer', entry: Omit<PortfolioEntry, 'id'>) => {
-      const id =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `local-${Date.now()}`
-      const next: PortfolioEntry = { ...entry, id }
+    async (kind: 'project' | 'volunteer', entry: Omit<PortfolioEntry, 'id'>) => {
+      const saved = await insertPortfolioEntry(kind, entry)
       if (kind === 'project') {
-        setProjects((prev) => [next, ...prev])
+        setProjects((prev) => [saved, ...prev])
       } else {
-        setVolunteer((prev) => [next, ...prev])
+        setVolunteer((prev) => [saved, ...prev])
       }
     },
-    [],
+    [setProjects, setVolunteer],
+  )
+
+  const handleDeleteEntry = useCallback(
+    async (id: string) => {
+      await deletePortfolioEntry(id)
+      setProjects((prev) => prev.filter((e) => e.id !== id))
+      setVolunteer((prev) => prev.filter((e) => e.id !== id))
+    },
+    [setProjects, setVolunteer],
   )
 
   return (
@@ -37,21 +55,59 @@ function App() {
       <SiteHeader />
       <main>
         <HeroSection />
+        {loading ? (
+          <p className="data-banner data-banner--loading" role="status">
+            Loading entries from Supabase…
+          </p>
+        ) : null}
+        {loadError ? (
+          <p className="data-banner data-banner--error" role="alert">
+            Could not load from Supabase ({loadError}). Showing sample data from{' '}
+            <code>src/data/portfolio.ts</code> until the request succeeds.
+          </p>
+        ) : null}
         <EntryListSection
           id="projects"
           title="Projects"
-          subtitle="Professional or personal work. Seed data lives in src/data/portfolio.ts."
+          subtitle="Rows load from the portfolio_entries table (kind = project). New entries from the form are saved to Supabase."
           entries={projects}
-          emptyLabel="No projects yet. Add one with the form below or edit the seed file."
+          emptyLabel="No projects yet. Add one with the form below or in the Supabase table editor."
+          canDeleteEntries={canAddEntries}
+          onDeleteEntry={handleDeleteEntry}
         />
         <EntryListSection
           id="volunteer"
           title="Volunteer"
-          subtitle="Community, nonprofit, or side-of-desk contributions—same card fields as projects."
+          subtitle="Same table with kind = volunteer."
           entries={volunteer}
-          emptyLabel="No volunteer entries yet. Add one with the form below or edit the seed file."
+          emptyLabel="No volunteer entries yet. Add one with the form below or in the Supabase table editor."
+          canDeleteEntries={canAddEntries}
+          onDeleteEntry={handleDeleteEntry}
         />
-        <AddEntryForm onAdd={handleAdd} />
+        {canAddEntries ? (
+          <AddEntryForm onAdd={handleAdd} />
+        ) : (
+          <section className="add-entry-section" id="add-entry" aria-labelledby="add-entry-locked-heading">
+            <div className="section-heading">
+              <h2 id="add-entry-locked-heading">Add an entry</h2>
+              <p className="section-subtitle">
+                Adding entries is limited to the portfolio owner. Use the magic link
+                in the header with your email, then ensure{' '}
+                <code>VITE_PORTFOLIO_OWNER_ID</code> in <code>.env.local</code> matches
+                your Supabase user id (shown after sign-in). Replace the old open{' '}
+                <code>INSERT</code> policy with an owner-only policy (see{' '}
+                <code>supabase/owner-insert-policy.sql</code>).
+              </p>
+            </div>
+            {!ownerIdConfigured && user ? (
+              <p className="add-entry-locked-note">
+                Your user id: <code>{user.id}</code> — add{' '}
+                <code>VITE_PORTFOLIO_OWNER_ID={user.id}</code> to <code>.env.local</code>{' '}
+                and restart <code>npm run dev</code>.
+              </p>
+            ) : null}
+          </section>
+        )}
         <AboutSection />
       </main>
       <SiteFooter />

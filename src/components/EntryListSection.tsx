@@ -7,6 +7,8 @@ type Props = {
   subtitle: string
   entries: PortfolioEntry[]
   emptyLabel: string
+  canDeleteEntries?: boolean
+  onDeleteEntry?: (id: string) => Promise<void>
 }
 
 export function EntryListSection({
@@ -15,6 +17,8 @@ export function EntryListSection({
   subtitle,
   entries,
   emptyLabel,
+  canDeleteEntries = false,
+  onDeleteEntry,
 }: Props) {
   return (
     <section className="entry-list-section" id={id} aria-labelledby={`${id}-heading`}>
@@ -27,7 +31,12 @@ export function EntryListSection({
       ) : (
         <div className="entry-grid">
           {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              canDelete={canDeleteEntries}
+              onDelete={onDeleteEntry}
+            />
           ))}
         </div>
       )}
