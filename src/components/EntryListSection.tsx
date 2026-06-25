@@ -7,7 +7,8 @@ type Props = {
   subtitle: string
   entries: PortfolioEntry[]
   emptyLabel: string
-  canDeleteEntries?: boolean
+  canManageEntries?: boolean
+  onUpdateEntry?: (id: string, entry: Omit<PortfolioEntry, 'id'>) => Promise<void>
   onDeleteEntry?: (id: string) => Promise<void>
 }
 
@@ -17,7 +18,8 @@ export function EntryListSection({
   subtitle,
   entries,
   emptyLabel,
-  canDeleteEntries = false,
+  canManageEntries = false,
+  onUpdateEntry,
   onDeleteEntry,
 }: Props) {
   return (
@@ -34,7 +36,8 @@ export function EntryListSection({
             <EntryCard
               key={entry.id}
               entry={entry}
-              canDelete={canDeleteEntries}
+              canManage={canManageEntries}
+              onUpdate={onUpdateEntry}
               onDelete={onDeleteEntry}
             />
           ))}

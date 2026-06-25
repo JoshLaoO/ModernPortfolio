@@ -11,6 +11,7 @@ import { usePortfolioFromSupabase } from './hooks/usePortfolioFromSupabase'
 import {
   deletePortfolioEntry,
   insertPortfolioEntry,
+  updatePortfolioEntry,
 } from './lib/portfolioSupabase'
 import { getPortfolioOwnerId, isPortfolioOwner } from './lib/owner'
 import './App.css'
@@ -50,6 +51,17 @@ function App() {
     [setProjects, setVolunteer],
   )
 
+  const handleUpdateEntry = useCallback(
+    async (id: string, entry: Omit<PortfolioEntry, 'id'>) => {
+      const updated = await updatePortfolioEntry(id, entry)
+      const applyUpdate = (prev: PortfolioEntry[]) =>
+        prev.map((e) => (e.id === id ? updated : e))
+      setProjects(applyUpdate)
+      setVolunteer(applyUpdate)
+    },
+    [setProjects, setVolunteer],
+  )
+
   return (
     <div className="app">
       <SiteHeader />
@@ -72,7 +84,8 @@ function App() {
           subtitle="Rows load from the portfolio_entries table (kind = project). New entries from the form are saved to Supabase."
           entries={projects}
           emptyLabel="No projects yet. Add one with the form below or in the Supabase table editor."
-          canDeleteEntries={canAddEntries}
+          canManageEntries={canAddEntries}
+          onUpdateEntry={handleUpdateEntry}
           onDeleteEntry={handleDeleteEntry}
         />
         <EntryListSection
@@ -81,7 +94,8 @@ function App() {
           subtitle="Same table with kind = volunteer."
           entries={volunteer}
           emptyLabel="No volunteer entries yet. Add one with the form below or in the Supabase table editor."
-          canDeleteEntries={canAddEntries}
+          canManageEntries={canAddEntries}
+          onUpdateEntry={handleUpdateEntry}
           onDeleteEntry={handleDeleteEntry}
         />
         {canAddEntries ? (

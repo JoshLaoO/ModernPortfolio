@@ -19,3 +19,5 @@ create policy "Owner can insert portfolio entries"
 -- select policy should remain for anon if the site reads without login.
 
 -- For owner-only DELETE from the app, see supabase/owner-delete-policy.sql
+-- For owner-only UPDATE, see supabase/owner-update-policy.sql
+-- For image uploads, see supabase/portfolio-media-storage.sql
