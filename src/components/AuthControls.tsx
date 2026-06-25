@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { getAuthRedirectUrl } from '../lib/authRedirect'
 import { supabase } from '../lib/supabaseClient'
 import { getPortfolioOwnerId, isPortfolioOwner } from '../lib/owner'
 import { useAuthSession } from '../hooks/useAuthSession'
@@ -21,7 +22,7 @@ export function AuthControls() {
     if (!trimmed) return
 
     setBusy(true)
-    const redirect = `${window.location.origin}${window.location.pathname}`
+    const redirect = getAuthRedirectUrl()
     const { error: signErr } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: { emailRedirectTo: redirect },
